@@ -8,61 +8,64 @@
 
 scalar DateTime
 type Cat {
-  id: ID
-  cat_name: String
-  weight: Int
-  birthdate: DateTime
-  location: String
-  owner: ID
+    id: ID
+    cat_name: String
+    weight: Int
+    birthdate: DateTime
+    owner: User
+    filename: String
+    location: Point
 }
 
 type Point {
-  type: GeoJSONPointType
+  type: GeoJSONPOintType,
   coordinates: [Float]
 }
 
-enum GeoJSONPointType {
+enum GeoJSONPOintType {
   Point
 }
 
 type Query {
-  cats: [Cat]
-  catById(id: ID!): Cat
-  catsByArea(area: String!): [Cat]
-  catsByOwner(owner: ID!): [Cat]
+    catById(id: ID!): Cat
+    cats: [Cat]
+    catsByArea(topRight:String!, bottomLeft:String!): [Cat]
+    catsByOwner(ownerId: ID!): [Cat]
 }
-
 input CatInput {
-  cat_name: String!
-  weight: Int!
-  birthdate: DateTime!
-  location: PointInput!
-  owner: ID!
+    cat_name: String!
+    weight: Int!
+    birthdate: DateTime!
+    owner: ID!
+    filename: String!
+    location: LocationInput!
 }
 
 input CatModifyInput {
-  cat_name: String
-  weight: Int
-  birthdate: DateTime
-  location: PointInput
-  owner: ID
+    cat_name: String
+    weight: Int
+    birthdate: DateTime
+    owner: ID
+    filename: String
+    location: LocationInput
 }
 
-input PointInput {
-  type: GeoJSONPointType!
+input LocationInput {
+  type: GeoJSONPOintType!,
   """
-  Coordinates must be in the format [longitude, latitude]
+  Coordinates in [longitude, latitude] format
   """
   coordinates: [Float]!
 }
 
-type catMessage {
-  message: String!
-  cat: Cat
+
+type CatMessage {
+    message: String!
+    cat: Cat
 }
 
 type Mutation {
-  createCat(cat: CatInput): catMessage
-  updateCat(id: ID!, cat: CatModifyInput): catMessage
-  deleteCat(id: ID!): catMessage
+    createCat(cat_name: String!, weight: Float!, birthdate: DateTime!, owner: ID!, location: LocationInput!, filename: String!): Cat
+    updateCat(id: ID!, cat_name: String, weight: Float, birthdate: DateTime, owner: ID, location: LocationInput, filename: String): Cat
+    deleteCat(id: ID!): Cat
 }
