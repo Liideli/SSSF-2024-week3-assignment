@@ -9,62 +9,115 @@
 // 2.2. updateCat
 // 2.3. deleteCat
 
-import {GraphQLError} from 'graphql';
-import {Cat} from '../../types/DBTypes';
+import mongoose from 'mongoose';
+import {Cat} from '../../interfaces/Cat';
 import catModel from '../models/catModel';
+import {Point} from 'geojson';
 
 export default {
   Query: {
     cats: async (): Promise<Cat[]> => {
       return await catModel.find();
     },
-    cat: async (_parent: undefined, args: {id: string}): Promise<Cat> => {
+    catById: async (_parent: undefined, args: {id: string}) => {
       const cat = await catModel.findById(args.id);
       if (!cat) {
-        throw new GraphQLError('Cat not found', {
-          extensions: {
-            code: 'NOT_FOUND',
-          },
-        });
+        throw new Error('Cat not found');
       }
       return cat;
+    },
+    catsByOwner: async (
+      _parent: undefined,
+      args: {ownerId: string}
+    ): Promise<Cat[]> => {
+      const cats = await catModel.find({owner: args.ownerId});
+      if (cats.length === 0) {
+        throw new Error('Cat not found');
+      }
+      return cats;
+    },
+    catsByArea: async (
+      _parent: undefined,
+      args: {topRight: string; bottomLeft: string}
+    ): Promise<Cat[]> => {
+      const rightCorner = args.topRight.split(',');
+      const leftCorner = args.bottomLeft.split(',');
+
+      const cats = await catModel.find({
+        location: {
+          $geoWithin: {
+            $box: [leftCorner, rightCorner],
+          },
+        },
+      });
+      if (cats.length === 0) {
+        throw new Error('Cat not found');
+      }
+      return cats;
     },
   },
   Mutation: {
     createCat: async (
       _parent: undefined,
-      args: {cat: Omit<Cat, '_id'>}
-    ): Promise<{message: string; cat?: Cat}> => {
-      const cat = await catModel.create(args.cat);
-      if (cat) {
-        return {message: 'Cat added', cat};
-      } else {
-        return {message: 'Cat not added'};
+      args: {
+        cat_name: String;
+        weight: Number;
+        birthdate: Date;
+        owner: mongoose.Schema.Types.ObjectId;
+        location: Point;
+        filename: String;
       }
+    ): Promise<Cat> => {
+      const newCat = await catModel.create({
+        cat_name: args.cat_name,
+        weight: args.weight,
+        birthdate: args.birthdate,
+        owner: args.owner,
+        location: args.location,
+        filename: args.filename,
+      });
+      if (!newCat) {
+        throw new Error('Error creating cat');
+      }
+      return newCat;
     },
     updateCat: async (
       _parent: undefined,
-      args: {id: string; cat: Omit<Cat, '_id' | 'owner' | 'location' | 'id'>}
-    ): Promise<{message: string; cat?: Cat}> => {
-      const cat = await catModel.findByIdAndUpdate(args.id, args.cat, {
-        new: true,
-      });
-      if (cat) {
-        return {message: 'Cat updated', cat};
-      } else {
-        return {message: 'Cat not updated'};
+      args: {
+        id: string;
+        cat_name?: String;
+        weight?: Number;
+        birthdate?: Date;
+        owner?: mongoose.Schema.Types.ObjectId;
+        location?: Point;
+        filename: String;
       }
+    ): Promise<Cat> => {
+      const updatedCat = await catModel.findByIdAndUpdate(
+        args.id,
+        {
+          cat_name: args.cat_name,
+          weight: args.weight,
+          birthdate: args.birthdate,
+          owner: args.owner,
+          location: args.location,
+          filename: args.filename,
+        },
+        {
+          new: true,
+        }
+      );
+      if (!updatedCat) {
+        throw new Error('Cat not found');
+      }
+      return updatedCat;
     },
-    deleteCat: async (
-      _parent: undefined,
-      args: {id: string}
-    ): Promise<{message: string; cat?: Cat}> => {
-      const cat = await catModel.findByIdAndDelete(args.id);
-      if (cat) {
-        return {message: 'Cat deleted', cat};
-      } else {
-        return {message: 'Cat not deleted'};
+    deleteCat: async (_parent: undefined, args: {id: string}): Promise<Cat> => {
+      const deletedCat = await catModel.findByIdAndDelete(args.id);
+      if (!deletedCat) {
+        throw new Error('Cat not found');
       }
+      return deletedCat;
     },
   },
 };

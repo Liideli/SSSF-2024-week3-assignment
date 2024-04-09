@@ -13,19 +13,30 @@ type Cat {
   weight: Int
   birthdate: DateTime
   location: String
-  owner: User
+  owner: ID
+}
+
+type Point {
+  type: GeoJSONPointType
+  coordinates: [Float]
+}
+
+enum GeoJSONPointType {
+  Point
 }
 
 type Query {
   cats: [Cat]
-  cat(id: ID!): Cat
+  catById(id: ID!): Cat
+  catsByArea(area: String!): [Cat]
+  catsByOwner(owner: ID!): [Cat]
 }
 
 input CatInput {
   cat_name: String!
   weight: Int!
   birthdate: DateTime!
-  location: String!
+  location: PointInput!
   owner: ID!
 }
 
@@ -33,8 +44,16 @@ input CatModifyInput {
   cat_name: String
   weight: Int
   birthdate: DateTime
-  location: String
+  location: PointInput
   owner: ID
+}
+
+input PointInput {
+  type: GeoJSONPointType!
+  """
+  Coordinates must be in the format [longitude, latitude]
+  """
+  coordinates: [Float]!
 }
 
 type catMessage {
